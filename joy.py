@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import math
 import pygame
+import random
 
 class Setup:
     size = (1600, 1200)
@@ -20,12 +22,14 @@ class State:
     accel = 5
     slowdown = 1.3
     joy_thresh = 0.3
+    bloke_action_radius = 10000
 
     def __init__(self):
         self.x = Setup.log_size[0] / 2
         self.y = Setup.log_size[1] / 2
         self.vec = [0, 0]
         self.phase = 0
+        self.bloke = (random.randint(100, Setup.log_size[0] - 100), random.randint(100, Setup.log_size[1] - 100))
 
     def tick(self, xaxis, yaxis):
         vx = self.vec[0]
@@ -55,11 +59,31 @@ class State:
         else:
             self.phase += 1
 
+        # the bloke
+        if self.bloke_moves():
+            dx = self.x - self.bloke[0]
+            dy = self.y - self.bloke[1]
+            alpha = math.atan(abs(dy)/abs(dx))
+            speed = self.maxspeed / 2
+            self.bloke = (
+                self.bloke[0] + speed * math.copysign(math.cos(alpha), dx),
+                self.bloke[1] + speed * math.copysign(math.sin(alpha), dy)
+            )
+
     def get_pos(self):
         return (int(self.x), int(self.y))
 
     def get_phase(self):
         return self.phase
+
+    def get_bloke(self):
+        return (int(self.bloke[0]), int(self.bloke[1]))
+
+    def bloke_moves(self):
+        dx = self.x - self.bloke[0]
+        dy = self.y - self.bloke[1]
+        c = dx * dx + dy * dy
+        return c >= self.bloke_action_radius
 
 
 class App:
@@ -70,6 +94,9 @@ class App:
         self.clock = pygame.time.Clock()
         self.state = State()
         self.walk = pygame.image.load('sprites/guy.png')
+        self.bloke = pygame.image.load('sprites/bloke.png')
+        self.bloke_walk_phase = 0
+        self.bloke_sneeze_phase = 0
 
         pygame.joystick.init()
         num_joy = pygame.joystick.get_count()
@@ -101,6 +128,23 @@ class App:
         frame.blit(self.walk, (0, 0), (ph * wid, 0, wid, hei))
         return frame
 
+    def get_bloke_frame(self, walk, sneeze):
+        walk_frames = 4
+        sneeze_frames = 5
+        wid = 128
+        hei = 180
+        frame = pygame.Surface([wid, hei])
+        if walk is not None:
+            ph = walk % (2 * walk_frames - 2)
+            if ph >= walk_frames:
+                ph = walk_frames - (ph % walk_frames + 1)
+        elif sneeze is not None:
+            ph = ((sneeze // 3) % sneeze_frames) + walk_frames
+        else:
+            ph = 0
+        frame.blit(self.bloke, (0, 0), (ph * wid, 0, wid, hei))
+        return frame
+
     def render(self):
         self.display.fill(Color.black)
         x, y = self.state.get_pos()
@@ -112,6 +156,26 @@ class App:
         wid = guy_frame.get_width()
         hei = guy_frame.get_height()
         self.display.blit(guy_frame, (x-wid//2, y-wid//2), (0, 0, wid, hei))
+
+        x, y = self.state.get_bloke()
+        if self.state.bloke_moves():
+            self.bloke_sneeze_phase = None
+            if self.bloke_walk_phase is not None:
+                self.bloke_walk_phase += 1
+            else:
+                self.bloke_walk_phase = 0
+        else:
+            self.bloke_walk_phase = None
+            if self.bloke_sneeze_phase is not None:
+                self.bloke_sneeze_phase += 1
+            else:
+                self.bloke_sneeze_phase = 0
+        bloke_frame = self.get_bloke_frame(self.bloke_walk_phase, self.bloke_sneeze_phase)
+        wid = bloke_frame.get_width()
+        hei = bloke_frame.get_height()
+        # print(x, y, wid, hei)
+        self.display.blit(bloke_frame, (x-wid//2, y-wid//2), (0, 0, wid, hei))
+
         pygame.display.update()
 
     def run(self):
