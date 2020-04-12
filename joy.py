@@ -15,6 +15,7 @@ class Setup:
 class Color:
     black = (0, 0, 0)
     blue = (60, 100, 220)
+    background = (180, 180, 180)
 
 
 class State:
@@ -22,7 +23,7 @@ class State:
     accel = 5
     slowdown = 1.3
     joy_thresh = 0.3
-    bloke_action_radius = 10000
+    bloke_action_radius = 3600
 
     def __init__(self):
         self.x = Setup.log_size[0] / 2
@@ -93,8 +94,8 @@ class App:
         pygame.display.set_caption('Joystick')
         self.clock = pygame.time.Clock()
         self.state = State()
-        self.walk = pygame.image.load('sprites/guy.png')
-        self.bloke = pygame.image.load('sprites/bloke.png')
+        self.walk = pygame.image.load('sprites/guy.png').convert_alpha()
+        self.bloke = pygame.image.load('sprites/bloke.png').convert_alpha()
         self.bloke_walk_phase = 0
         self.bloke_sneeze_phase = 0
 
@@ -117,23 +118,20 @@ class App:
         yvalue = joystick.get_axis(1)
         self.state.tick(xvalue, yvalue)
 
-    def get_frame(self, phase):
+    def get_guy_blit(self, phase):
         frames = 4
         wid = 142
         hei = 150
-        frame = pygame.Surface([wid, hei])
         ph = phase % (2 * frames - 2)
         if ph >= frames:
             ph = frames - (ph % frames + 1)
-        frame.blit(self.walk, (0, 0), (ph * wid, 0, wid, hei))
-        return frame
+        return (self.walk, (ph * wid, 0, wid, hei))
 
-    def get_bloke_frame(self, walk, sneeze):
+    def get_bloke_blit(self, walk, sneeze):
         walk_frames = 4
         sneeze_frames = 5
         wid = 128
         hei = 180
-        frame = pygame.Surface([wid, hei])
         if walk is not None:
             ph = walk % (2 * walk_frames - 2)
             if ph >= walk_frames:
@@ -142,20 +140,20 @@ class App:
             ph = ((sneeze // 3) % sneeze_frames) + walk_frames
         else:
             ph = 0
-        frame.blit(self.bloke, (0, 0), (ph * wid, 0, wid, hei))
-        return frame
+        return (self.bloke, (ph * wid, 0, wid, hei))
 
     def render(self):
-        self.display.fill(Color.black)
+        buf = pygame.Surface(Setup.log_size, pygame.SRCALPHA, 32)
+        buf.fill(Color.background)
         x, y = self.state.get_pos()
         phase = self.state.get_phase()
         x = int(x * Setup.scale[0])
         y = int(y * Setup.scale[1])
 
-        guy_frame = self.get_frame(phase)
-        wid = guy_frame.get_width()
-        hei = guy_frame.get_height()
-        self.display.blit(guy_frame, (x-wid//2, y-wid//2), (0, 0, wid, hei))
+        guy_blit = self.get_guy_blit(phase)
+        wid = guy_blit[1][2]
+        hei = guy_blit[1][3]
+        guy_blit = (guy_blit[0], (x-wid//2, y-wid//2), guy_blit[1])
 
         x, y = self.state.get_bloke()
         if self.state.bloke_moves():
@@ -170,11 +168,14 @@ class App:
                 self.bloke_sneeze_phase += 1
             else:
                 self.bloke_sneeze_phase = 0
-        bloke_frame = self.get_bloke_frame(self.bloke_walk_phase, self.bloke_sneeze_phase)
-        wid = bloke_frame.get_width()
-        hei = bloke_frame.get_height()
-        # print(x, y, wid, hei)
-        self.display.blit(bloke_frame, (x-wid//2, y-wid//2), (0, 0, wid, hei))
+        bloke_blit = self.get_bloke_blit(self.bloke_walk_phase, self.bloke_sneeze_phase)
+        wid = bloke_blit[1][2]
+        hei = bloke_blit[1][3]
+        bloke_blit = (bloke_blit[0], (x-wid//2, y-wid//2), bloke_blit[1])
+
+        buf.blits(blit_sequence=[guy_blit, bloke_blit])
+
+        self.display.blit(buf, (0, 0), (0, 0, Setup.log_size[0], Setup.log_size[1]))
 
         pygame.display.update()
 
