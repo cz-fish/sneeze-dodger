@@ -94,12 +94,11 @@ class App:
         frames = 4
         wid = 142
         hei = 150
-        frame = pygame.Surface([wid, hei]).convert()
+        frame = pygame.Surface([wid, hei])
         ph = phase % (2 * frames - 2)
         if ph >= frames:
             ph = frames - (ph % frames + 1)
         frame.blit(self.walk, (0, 0), (ph * wid, 0, wid, hei))
-        # frame.set_colorkey((254, 254, 254))
         return frame
 
     def render(self):
@@ -108,10 +107,11 @@ class App:
         phase = self.state.get_phase()
         x = int(x * Setup.scale[0])
         y = int(y * Setup.scale[1])
-        wid = 142
-        hei = 150
-        self.display.blit(self.get_frame(phase), (x-wid//2, y-wid//2), (0, 0, wid, hei))
-        # pygame.draw.rect(self.display, Color.blue, (x, y, 10, 10))
+
+        guy_frame = self.get_frame(phase)
+        wid = guy_frame.get_width()
+        hei = guy_frame.get_height()
+        self.display.blit(guy_frame, (x-wid//2, y-wid//2), (0, 0, wid, hei))
         pygame.display.update()
 
     def run(self):
