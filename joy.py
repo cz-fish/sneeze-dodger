@@ -25,6 +25,7 @@ class State:
         self.x = Setup.log_size[0] / 2
         self.y = Setup.log_size[1] / 2
         self.vec = [0, 0]
+        self.phase = 0
 
     def tick(self, xaxis, yaxis):
         vx = self.vec[0]
@@ -48,8 +49,17 @@ class State:
         self.y = max(0, min(Setup.log_size[1], self.y + vy))
         self.vec = [vx, vy]
 
+        # walk phase; reset if not moving
+        if abs(vx) < 2 and abs(vy) < 2:
+            self.phase = 0
+        else:
+            self.phase += 1
+
     def get_pos(self):
         return (int(self.x), int(self.y))
+
+    def get_phase(self):
+        return self.phase
 
 
 class App:
@@ -59,6 +69,7 @@ class App:
         pygame.display.set_caption('Joystick')
         self.clock = pygame.time.Clock()
         self.state = State()
+        self.walk = pygame.image.load('sprites/guy.png')
 
         pygame.joystick.init()
         num_joy = pygame.joystick.get_count()
@@ -79,15 +90,28 @@ class App:
         yvalue = joystick.get_axis(1)
         self.state.tick(xvalue, yvalue)
 
-    #def draw_player(self, x, y):
-    #
+    def get_frame(self, phase):
+        frames = 4
+        wid = 142
+        hei = 150
+        frame = pygame.Surface([wid, hei]).convert()
+        ph = phase % (2 * frames - 2)
+        if ph >= frames:
+            ph = frames - (ph % frames + 1)
+        frame.blit(self.walk, (0, 0), (ph * wid, 0, wid, hei))
+        # frame.set_colorkey((254, 254, 254))
+        return frame
 
     def render(self):
         self.display.fill(Color.black)
         x, y = self.state.get_pos()
+        phase = self.state.get_phase()
         x = int(x * Setup.scale[0])
         y = int(y * Setup.scale[1])
-        pygame.draw.rect(self.display, Color.blue, (x, y, 10, 10))
+        wid = 142
+        hei = 150
+        self.display.blit(self.get_frame(phase), (x-wid//2, y-wid//2), (0, 0, wid, hei))
+        # pygame.draw.rect(self.display, Color.blue, (x, y, 10, 10))
         pygame.display.update()
 
     def run(self):
