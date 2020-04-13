@@ -24,15 +24,12 @@ class App:
 
     def render(self):
         layers: Dict[int, pygame.Surface] = {}
-
         self.level.add_layers(layers)
 
         actor_layer = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-        # buf = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-
-        # TODO: level.draw_background()
         actors = self.level.get_actors()
         # player first
+        # FIXME: actors should be ordered by y-coord
         actor_order = ['player'] + [a for a in actors.keys() if a != 'player']
 
         blits = []
@@ -55,6 +52,7 @@ class App:
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
         for k, surface in sorted(layers.items(), key=lambda x: x[0]):
             self.display.blit(surface, (0, 0), (0, 0, Setup.logical_size[0], Setup.logical_size[1]))
+        # FIXME: keep track of blit rects and only update the rects
         pygame.display.update()
 
     def run(self):

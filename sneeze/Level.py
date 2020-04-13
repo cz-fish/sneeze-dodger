@@ -11,9 +11,56 @@ from typing import Dict
 
 
 class Level:
+    class Limit:
+        class StayOn:
+            Left = 0
+            Right = 1
+            Above = 2
+            Below = 3
+            fromStr = {
+                'left': Left,
+                'right': Right,
+                'above': Above,
+                'below': Below
+            }
+
+        def __init__(self, limit_json):
+            StayOn = Level.Limit.StayOn
+            self.stay_on = StayOn.fromStr[limit_json['stayon']]
+            self.a = Pos(limit_json['x1'], limit_json['y1'])
+            self.b = Pos(limit_json['x2'], limit_json['y2'])
+            self.finish = 'finish' in limit_json and limit_json['finish']
+            self.diff = Pos(self.b.x - self.a.x, self.b.y - self.a.y)
+
+            # Check that coords are in the right order so that we can
+            # simplift the code
+            if self.stay_on in [StayOn.Left, StayOn.Right]:
+                assert(self.a.y > self.b.y)
+            elif self.stay_on in [StayOn.Above, StayOn.Below]:
+                assert(self.a.x < self.b.x)
+
+        def within(self, point: Pos) -> bool:
+            StayOn = Level.Limit.StayOn
+            if self.stay_on in [StayOn.Left, StayOn.Right]:
+                if point.y < self.b.y or point.y > self.a.y:
+                    return True
+                dy = point.y - self.a.y
+                x = self.a.x + dy * self.diff.x / self.diff.y
+                return (point.x < x) == (self.stay_on == StayOn.Left)
+            else:
+                if point.x < self.a.x or point.x > self.b.x:
+                    return True
+                dx = point.x - self.a.x
+                y = self.a.y + dx * self.diff.y / self.diff.x
+                return (point.y < y) == (self.stay_on == StayOn.Above)
+
+
     def __init__(self):
         with open('levels/lev1.json', 'rt') as fp:
             self.info = json.load(fp)
+
+        self.limits = [Level.Limit(lim) for lim in self.info['limits']]
+
         self.background = Background(self.info['layers'])
 
         self.player = Player()
@@ -31,9 +78,14 @@ class Level:
 
     def tick(self, inputs: Inputs) -> None:
         def collision(old_pos: Pos, speed_vec: Pos) -> Pos:
-            x = max(0, min(Setup.logical_size[0], old_pos.x + speed_vec.x))
-            y = max(0, min(Setup.logical_size[1], old_pos.y + speed_vec.y))
-            return Pos(x, y)
+            new_pos = Pos(old_pos.x + speed_vec.x, old_pos.y + speed_vec.y)
+            for limit in self.limits:
+                if not limit.within(new_pos):
+                    if limit.finish:
+                        # TODO: level finished
+                        pass
+                    return old_pos
+            return new_pos
 
         self.player.move(inputs, collision)
         # TODO: move other actors
@@ -41,72 +93,15 @@ class Level:
     def add_layers(self, layer_dict: Dict[int, pygame.Surface]) -> None:
         self.background.add_layers(layer_dict)
 
-
-    class State:
-        # FIXME: all of this class is deprecated
-        maxspeed = 10
-        accel = 5
-        slowdown = 1.3
-        joy_thresh = 0.3
-        bloke_action_radius = 3600
-
-        def __init__(self):
-            self.x = Setup.log_size[0] / 2
-            self.y = Setup.log_size[1] / 2
-            self.vec = [0, 0]
-            self.phase = 0
-            self.bloke = (random.randint(100, Setup.log_size[0] - 100), random.randint(100, Setup.log_size[1] - 100))
-
-        def tick(self, xaxis, yaxis):
-            vx = self.vec[0]
-            vy = self.vec[1]
-
-            if xaxis < -self.joy_thresh:
-                vx = max(-self.maxspeed, vx - self.accel)
-            elif xaxis > self.joy_thresh:
-                vx = min(self.maxspeed, vx + self.accel)
-            else:
-                vx /= self.slowdown
-
-            if yaxis < -self.joy_thresh:
-                vy = max(-self.maxspeed, vy - self.accel)
-            elif yaxis > self.joy_thresh:
-                vy = min(self.maxspeed, vy + self.accel)
-            else:
-                vy /= self.slowdown
-
-            self.x = max(0, min(Setup.log_size[0], self.x + vx))
-            self.y = max(0, min(Setup.log_size[1], self.y + vy))
-            self.vec = [vx, vy]
-
-            # walk phase; reset if not moving
-            if abs(vx) < 2 and abs(vy) < 2:
-                self.phase = 0
-            else:
-                self.phase += 1
-
-            # the bloke
-            if self.bloke_moves():
-                dx = self.x - self.bloke[0]
-                dy = self.y - self.bloke[1]
-                alpha = math.atan(abs(dy)/abs(dx))
-                speed = self.maxspeed / 2
-                self.bloke = (
-                    self.bloke[0] + speed * math.copysign(math.cos(alpha), dx),
-                    self.bloke[1] + speed * math.copysign(math.sin(alpha), dy)
-                )
-
-        def get_pos(self):
-            return (int(self.x), int(self.y))
-
-        def get_phase(self):
-            return self.phase
-
-        def get_bloke(self):
-            return (int(self.bloke[0]), int(self.bloke[1]))
-
-        def bloke_moves(self):
-            dx = self.x - self.bloke[0]
-            dy = self.y - self.bloke[1]
-            c = dx * dx + dy * dy
-            return c >= self.bloke_action_radius
+        # Draw boundary lines onto Debug layer
+        """
+        limit_lines = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
+        for limit in self.info['limits']:
+            pygame.draw.line(
+                limit_lines,
+                (255,0,0),
+                (limit['x1'], limit['y1']),
+                (limit['x2'], limit['y2'])
+            )
+        layer_dict[RenderLayers.Debug] = limit_lines
+        """

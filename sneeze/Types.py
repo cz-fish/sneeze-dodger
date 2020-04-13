@@ -8,3 +8,4 @@ class RenderLayers:
     Background = 0
     Actors = 1
     Overlays = 2
+    Debug = 10
