@@ -7,7 +7,7 @@ from sneeze.Bloke import Bloke
 from sneeze.Player import Player
 from sneeze.Setup import Setup
 from sneeze.Types import *
-from typing import Dict
+from typing import Dict, List
 
 
 class Level:
@@ -55,8 +55,8 @@ class Level:
                 return (point.y < y) == (self.stay_on == StayOn.Above)
 
 
-    def __init__(self):
-        with open('levels/lev1.json', 'rt') as fp:
+    def __init__(self, level_file):
+        with open(level_file, 'rt') as fp:
             self.info = json.load(fp)
 
         self.limits = [Level.Limit(lim) for lim in self.info['limits']]
@@ -64,21 +64,20 @@ class Level:
         self.background = Background(self.info['layers'])
 
         self.player = Player()
-        self.player.pos = Pos(
+        self.player.move_to(Pos(
             self.info['player']['start']['x'],
             self.info['player']['start']['y']
-        )
+        ))
+        # FIXME: load actors from the level json
+        self.actors: List[Actor] = []
 
-        self.actors: Dict[str, Actor] = {
-            'player': self.player
-        }
-
-    def get_actors(self) -> Dict[str, Actor]:
-        return self.actors
+    def get_actors(self) -> List[Actor]:
+        return [self.player] + self.actors
 
     def tick(self, inputs: Inputs) -> None:
         def collision(old_pos: Pos, speed_vec: Pos) -> Pos:
             new_pos = Pos(old_pos.x + speed_vec.x, old_pos.y + speed_vec.y)
+            # FIXME: just replace all of this with point in polygon test
             for limit in self.limits:
                 if not limit.within(new_pos):
                     if limit.finish:

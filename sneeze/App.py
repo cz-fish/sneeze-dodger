@@ -1,5 +1,6 @@
 import pygame
 
+from collections import namedtuple
 from sneeze.Actor import Actor
 from sneeze.Color import Color
 from sneeze.Controller import Controller
@@ -9,55 +10,98 @@ from sneeze.Setup import Setup
 from sneeze.Types import *
 from typing import Dict, List
 
+Update = namedtuple('Update', ['surface', 'src_rect', 'dst_rect'])
+
 class App:
     def __init__(self):
         self.controller = Controller()
         self.display = pygame.display.set_mode(Setup.window_size)
         pygame.display.set_caption('Sneeze Dodger')
         self.clock = pygame.time.Clock()
-        self.level = Level()
+        self.level = Level('levels/lev1.json')
 
     def tick(self):
         self.clock.tick(Setup.fps)
         inputs = self.controller.get_inputs()
         self.level.tick(inputs)
 
-    def render(self):
-        layers: Dict[int, pygame.Surface] = {}
-        self.level.add_layers(layers)
+    def render(self, first_render=False):
+        clears: List[pygame.Rect] = []
+        redraws: List[Update] = []
+        updates: List[pygame.Rect] = []
 
-        actor_layer = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-        actors = self.level.get_actors()
-        # player first
-        # FIXME: actors should be ordered by y-coord
-        actor_order = ['player'] + [a for a in actors.keys() if a != 'player']
+        if first_render:
+            "Redraw the whole screen; should be done just once at the beginning"
+            layer_map: Dict[int, pygame.Surface] = {}
+            self.level.add_layers(layer_map)
+            self.static_layers = sorted(layer_map.items(), key=lambda x: x[0])
+            clears.append(
+                pygame.Rect(0, 0, Setup.logical_size[0], Setup.logical_size[1])
+            )
+        else:
+            actors = self.level.get_actors()
+            # actors ordered by y-coord
+            for actor in sorted(actors, key=lambda a: a.pos.y):
+                if not actor.sprite:
+                    continue
+                sprite = actor.sprite
+                anim, phase = actor.animation
+                blit = sprite.get_blit(anim, phase)
+                half_width = blit.rect.w // 2
+                half_height = blit.rect.h // 2
 
-        blits = []
-        for actor_name in actor_order:
-            actor = actors[actor_name]
-            if not actor.sprite:
-                continue
-            sprite = actor.sprite
-            anim, phase = actor.animation
-            blit = sprite.get_blit(anim, phase)
-            width = blit.rect[2]
-            height = blit.rect[3]
-            left = actor.pos.x - width // 2
-            top = actor.pos.y - height // 2
-            blits += [(blit.surface, (left, top), blit.rect)]
+                def make_rect(pos):
+                    return pygame.Rect(
+                        int(pos.x) - half_width,
+                        int(pos.y) - half_height,
+                        blit.rect.w,
+                        blit.rect.h)
 
-        actor_layer.blits(blit_sequence=blits)
-        layers[RenderLayers.Actors] = actor_layer
+                clear_rect = make_rect(actor.prev_pos)
+                draw_rect = make_rect(actor.pos)
+
+                clears.append(clear_rect)
+                redraws.append(Update(blit.surface, blit.rect, draw_rect))
+                # FIXME: why do we have to add 10 pixels around?
+                updates.append(
+                    pygame.Rect(
+                        draw_rect.x - 10,
+                        draw_rect.y - 10,
+                        draw_rect.w + 20,
+                        draw_rect.h + 20
+                    ))
 
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
-        for k, surface in sorted(layers.items(), key=lambda x: x[0]):
-            self.display.blit(surface, (0, 0), (0, 0, Setup.logical_size[0], Setup.logical_size[1]))
-        # FIXME: keep track of blit rects and only update the rects
-        pygame.display.update()
+        
+        # Clear all rects that need clearing
+        for i, layer in self.static_layers:
+            for clear in clears:
+                self.display.blit(layer, clear.topleft, clear)
+
+        # Redraw actors that need redrawing
+        for update in redraws:
+            self.display.blit(
+                update.surface,
+                update.dst_rect.topleft,
+                update.src_rect)
+
+        # Draw layers above the actors
+        for i, layer in self.static_layers:
+            if i <= RenderLayers.Actors:
+                continue
+            for update in redraws:
+                self.display.blit(
+                    layer,
+                    update.dst_rect.topleft,
+                    update.dst_rect)
+
+        # Update all rects that were cleared or redrawn
+        pygame.display.update(clears + updates)
 
     def run(self):
         self.running = True
 
+        self.render(first_render=True)
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -65,7 +109,6 @@ class App:
                 elif event.type == pygame.KEYUP:
                     if event.key == pygame.K_ESCAPE:
                         self.stop()
-
             self.tick()
             self.render()
 

@@ -6,6 +6,7 @@ from typing import Optional
 class Actor:
     def __init__(self):
         self.pos = Pos(0, 0)
+        self.prev_pos = Pos(0, 0)
         self.speed_vec = Pos(0, 0)
         self.max_speed = 10
         self.accel = 5
@@ -14,6 +15,7 @@ class Actor:
         self.animation = Animation('idle', 0)
 
     def move_to(self, pos: Pos) -> None:
+        self.prev_pos = self.pos
         self.pos = Pos(pos.x, pos.y)
 
     def update_speed(self, xmove: int, ymove: int) -> None:

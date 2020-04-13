@@ -37,7 +37,10 @@ class Sprite():
             first, num = meta.phases[phase]
             frame = first + frame_no % num
 
-        return Blit(self.surface, (frame * meta.width, 0, meta.width, meta.height))
+        return Blit(
+            self.surface,
+            pygame.Rect(frame * meta.width, 0, meta.width, meta.height)
+        )
 
 
 sprite_cache: Dict[str, Sprite] = {}

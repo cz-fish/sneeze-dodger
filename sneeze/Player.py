@@ -12,7 +12,7 @@ class Player(Actor):
         new_pos = collision(self.pos, self.speed_vec)
         if new_pos == self.pos:
             self.speed_vec = Pos(0, 0)
-        self.pos = new_pos
+        self.move_to(new_pos)
 
         # walk phase; reset if not moving
         if abs(self.speed_vec.x) < 2 and abs(self.speed_vec.y) < 2:
