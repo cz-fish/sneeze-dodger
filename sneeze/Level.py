@@ -1,4 +1,8 @@
+import json
+import pygame
+
 from sneeze.Actor import Actor
+from sneeze.Background import Background
 from sneeze.Bloke import Bloke
 from sneeze.Player import Player
 from sneeze.Setup import Setup
@@ -8,11 +12,14 @@ from typing import Dict
 
 class Level:
     def __init__(self):
+        with open('levels/lev1.json', 'rt') as fp:
+            self.info = json.load(fp)
+        self.background = Background(self.info['layers'])
+
         self.player = Player()
-        # FIXME: should be determined by level config
         self.player.pos = Pos(
-            Setup.logical_size[0] // 2,
-            Setup.logical_size[1] // 2
+            self.info['player']['start']['x'],
+            self.info['player']['start']['y']
         )
 
         self.actors: Dict[str, Actor] = {
@@ -30,6 +37,9 @@ class Level:
 
         self.player.move(inputs, collision)
         # TODO: move other actors
+
+    def add_layers(self, layer_dict: Dict[int, pygame.Surface]) -> None:
+        self.background.add_layers(layer_dict)
 
 
     class State:

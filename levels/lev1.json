@@ -1,0 +1,103 @@
+{
+    "size": {
+        "width": 2560,
+        "height": 1440
+    },
+    "player": {
+        "start": {
+            "x": 370,
+            "y": 1220
+        }
+    },
+    "blokes": [
+        {
+            "sprite": "bloke",
+            "type": "patrol",
+            "start": {
+                "x": 860,
+                "y": 780
+            },
+            "waypoints": [
+                {
+                    "x": 1480,
+                    "y": 780
+                }
+            ]
+        },
+        {
+            "sprite": "bloke",
+            "type": "patrol",
+            "start": {
+                "x": 2440,
+                "y": 1040
+            },
+            "waypoints": [
+                {
+                    "x": 1650,
+                    "y": 1040
+                }
+            ]
+        }
+    ],
+    "layers": [
+        {
+            "file": "level1-0.jpg",
+            "type": "base"
+        },
+        {
+            "file": "level1-1.png",
+            "type": "overlay"
+        }
+    ],
+    "limits": [
+        {
+            "stayon": "right",
+            "x1": 120,
+            "y1": 1440,
+            "x2": 656,
+            "y2": 780
+        },
+        {
+            "stayon": "right",
+            "x1": 656,
+            "y1": 780,
+            "x2": 1505,
+            "y2": 780
+        },
+        {
+            "stayon": "right",
+            "x1": 1505,
+            "y1": 780,
+            "x2": 1480,
+            "y2": 670
+        },
+        {
+            "stayon": "left",
+            "x1": 1630,
+            "y1": 1440,
+            "x2": 1540,
+            "y2": 1250
+        },
+        {
+            "stayon": "left",
+            "x1": 1540,
+            "y1": 1250,
+            "x2": 2340,
+            "y2": 1250
+        },
+        {
+            "stayon": "left",
+            "x1": 2340,
+            "y1": 1250,
+            "x2": 2050,
+            "y2": 670
+        },
+        {
+            "finishon": "left",
+            "x1": 1480,
+            "y1": 670,
+            "x2": 2070,
+            "y2": 670
+        }
+    ]
+}

@@ -7,7 +7,7 @@ from sneeze.Level import Level
 from sneeze.Player import Player
 from sneeze.Setup import Setup
 from sneeze.Types import *
-from typing import List
+from typing import Dict, List
 
 class App:
     def __init__(self):
@@ -23,8 +23,12 @@ class App:
         self.level.tick(inputs)
 
     def render(self):
-        buf = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-        buf.fill(Color.background)
+        layers: Dict[int, pygame.Surface] = {}
+
+        self.level.add_layers(layers)
+
+        actor_layer = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
+        # buf = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
 
         # TODO: level.draw_background()
         actors = self.level.get_actors()
@@ -45,10 +49,12 @@ class App:
             top = actor.pos.y - height // 2
             blits += [(blit.surface, (left, top), blit.rect)]
 
-        buf.blits(blit_sequence=blits)
+        actor_layer.blits(blit_sequence=blits)
+        layers[RenderLayers.Actors] = actor_layer
 
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
-        self.display.blit(buf, (0, 0), (0, 0, Setup.logical_size[0], Setup.logical_size[1]))
+        for k, surface in sorted(layers.items(), key=lambda x: x[0]):
+            self.display.blit(surface, (0, 0), (0, 0, Setup.logical_size[0], Setup.logical_size[1]))
         pygame.display.update()
 
     def run(self):
