@@ -64,7 +64,8 @@ class Level:
         self.background.add_layers(layer_dict)
 
         # Draw boundary lines onto Debug layer
-        limit_lines = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-        pygame.draw.polygon(limit_lines, (255,0,0), self.limits, 5)
-        pygame.draw.rect(limit_lines, (50, 70, 200), self.finish, 5)
-        layer_dict[RenderLayers.Debug] = limit_lines
+        if False:
+            limit_lines = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
+            pygame.draw.polygon(limit_lines, (255,0,0), self.limits, 5)
+            pygame.draw.rect(limit_lines, (50, 70, 200), self.finish, 5)
+            layer_dict[RenderLayers.Debug] = limit_lines
