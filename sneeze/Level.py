@@ -11,55 +11,27 @@ from typing import Dict, List
 
 
 class Level:
-    class Limit:
-        class StayOn:
-            Left = 0
-            Right = 1
-            Above = 2
-            Below = 3
-            fromStr = {
-                'left': Left,
-                'right': Right,
-                'above': Above,
-                'below': Below
-            }
-
-        def __init__(self, limit_json):
-            StayOn = Level.Limit.StayOn
-            self.stay_on = StayOn.fromStr[limit_json['stayon']]
-            self.a = Pos(limit_json['x1'], limit_json['y1'])
-            self.b = Pos(limit_json['x2'], limit_json['y2'])
-            self.finish = 'finish' in limit_json and limit_json['finish']
-            self.diff = Pos(self.b.x - self.a.x, self.b.y - self.a.y)
-
-            # Check that coords are in the right order so that we can
-            # simplift the code
-            if self.stay_on in [StayOn.Left, StayOn.Right]:
-                assert(self.a.y > self.b.y)
-            elif self.stay_on in [StayOn.Above, StayOn.Below]:
-                assert(self.a.x < self.b.x)
-
-        def within(self, point: Pos) -> bool:
-            StayOn = Level.Limit.StayOn
-            if self.stay_on in [StayOn.Left, StayOn.Right]:
-                if point.y < self.b.y or point.y > self.a.y:
-                    return True
-                dy = point.y - self.a.y
-                x = self.a.x + dy * self.diff.x / self.diff.y
-                return (point.x < x) == (self.stay_on == StayOn.Left)
-            else:
-                if point.x < self.a.x or point.x > self.b.x:
-                    return True
-                dx = point.x - self.a.x
-                y = self.a.y + dx * self.diff.y / self.diff.x
-                return (point.y < y) == (self.stay_on == StayOn.Above)
-
+    def point_in_limits(self, point: Pos) -> bool:
+        last = self.limits[-1]
+        answer = False
+        for vertex in self.limits:
+            if (vertex.y > point.y) != (last.y > point.y) \
+                and (point.x < (last.x - vertex.x) * (point.y - vertex.y) / (last.y - vertex.y) + vertex.x):
+                answer = not answer
+            last = vertex
+        return answer
 
     def __init__(self, level_file):
         with open(level_file, 'rt') as fp:
             self.info = json.load(fp)
 
-        self.limits = [Level.Limit(lim) for lim in self.info['limits']]
+        self.limits = [Pos(lim['x'], lim['y']) for lim in self.info['limits']]
+        finish = self.info['finish']
+        self.finish = pygame.Rect(
+            finish['x1'], finish['y1'],
+            finish['x2'] - finish['x1'],
+            finish['y2'] - finish['y1']
+        )
 
         self.background = Background(self.info['layers'])
 
@@ -77,14 +49,13 @@ class Level:
     def tick(self, inputs: Inputs) -> None:
         def collision(old_pos: Pos, speed_vec: Pos) -> Pos:
             new_pos = Pos(old_pos.x + speed_vec.x, old_pos.y + speed_vec.y)
-            # FIXME: just replace all of this with point in polygon test
-            for limit in self.limits:
-                if not limit.within(new_pos):
-                    if limit.finish:
-                        # TODO: level finished
-                        pass
-                    return old_pos
-            return new_pos
+            if self.finish.collidepoint(new_pos):
+                # TODO: level finished
+                print("Level finished")
+                return old_pos
+            if self.point_in_limits(new_pos):
+                return new_pos
+            return old_pos
 
         self.player.move(inputs, collision)
         # TODO: move other actors
@@ -93,14 +64,7 @@ class Level:
         self.background.add_layers(layer_dict)
 
         # Draw boundary lines onto Debug layer
-        """
         limit_lines = pygame.Surface(Setup.logical_size, pygame.SRCALPHA, 32)
-        for limit in self.info['limits']:
-            pygame.draw.line(
-                limit_lines,
-                (255,0,0),
-                (limit['x1'], limit['y1']),
-                (limit['x2'], limit['y2'])
-            )
+        pygame.draw.polygon(limit_lines, (255,0,0), self.limits, 5)
+        pygame.draw.rect(limit_lines, (50, 70, 200), self.finish, 5)
         layer_dict[RenderLayers.Debug] = limit_lines
-        """
