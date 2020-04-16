@@ -7,12 +7,20 @@ SpriteMeta = namedtuple('SpriteInfo', ['width', 'height', 'phases'])
 
 # FIXME: this should be in some config file
 sprite_meta: Dict[str, SpriteMeta] = {
+    # sprite_name -> (
+    #     width,
+    #     height,
+    #     phases {phase_name -> (
+    #         first_frame,
+    #         num_frames,
+    #         slowdown
+    #     )})
     'guy': SpriteMeta(142, 150, {
-        'walk': (0, 6)
+        'walk': (0, 6, 2)  # from frame 0, 6 frames, slowdown 2x
     }),
     'bloke': SpriteMeta(128, 180, {
-        'walk': (0, 6),
-        'sneeze': (6, 5)
+        'walk': (0, 6, 2),  # from frame 0, 6 frames, slowdown 2x
+        'sneeze': (6, 5, 5)  # from frame 6, 5 frames, slowdown 5x
     })
 }
 
@@ -34,8 +42,8 @@ class Sprite():
         frame = 0
         meta = sprite_meta[self.key]
         if phase in meta.phases:
-            first, num = meta.phases[phase]
-            frame = first + frame_no % num
+            first, num, slowdown = meta.phases[phase]
+            frame = first + (frame_no // slowdown) % num
 
         return Blit(
             self.surface,

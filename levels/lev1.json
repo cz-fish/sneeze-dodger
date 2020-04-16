@@ -23,7 +23,7 @@
                     "y": 780
                 }
             ],
-            "action_radius": 3600
+            "action_radius": 10000
         },
         {
             "sprite": "bloke",
