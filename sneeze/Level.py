@@ -40,8 +40,9 @@ class Level:
             self.info['player']['start']['x'],
             self.info['player']['start']['y']
         ))
-        # FIXME: load actors from the level json
-        self.actors: List[Actor] = []
+        self.actors: List[Actor] = [
+            Bloke(bloke_json) for bloke_json in self.info['blokes']
+        ]
 
     def get_actors(self) -> List[Actor]:
         return [self.player] + self.actors
@@ -58,7 +59,8 @@ class Level:
             return old_pos
 
         self.player.move(inputs, collision)
-        # TODO: move other actors
+        for actor in self.actors:
+            actor.move(self.player.pos)
 
     def add_layers(self, layer_dict: Dict[int, pygame.Surface]) -> None:
         self.background.add_layers(layer_dict)

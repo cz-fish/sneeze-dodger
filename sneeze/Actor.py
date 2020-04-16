@@ -14,6 +14,9 @@ class Actor:
         self.sprite: Optional[Sprite] = None
         self.animation = Animation('idle', 0)
 
+    def move(self, player_pos: Pos) -> None:
+        pass
+    
     def move_to(self, pos: Pos) -> None:
         self.prev_pos = self.pos
         self.pos = Pos(pos.x, pos.y)

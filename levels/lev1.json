@@ -12,7 +12,7 @@
     "blokes": [
         {
             "sprite": "bloke",
-            "type": "patrol",
+            "type": "chase",
             "start": {
                 "x": 860,
                 "y": 780
@@ -22,7 +22,8 @@
                     "x": 1480,
                     "y": 780
                 }
-            ]
+            ],
+            "action_radius": 3600
         },
         {
             "sprite": "bloke",
