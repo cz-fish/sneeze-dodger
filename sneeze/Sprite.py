@@ -4,6 +4,7 @@ from collections import namedtuple
 from typing import Dict
 
 SpriteMeta = namedtuple('SpriteInfo', ['width', 'height', 'phases'])
+AnimFrames = namedtuple('AnimFrames', ['first', 'num', 'slowdown'])
 
 # FIXME: this should be in some config file
 sprite_meta: Dict[str, SpriteMeta] = {
@@ -16,11 +17,20 @@ sprite_meta: Dict[str, SpriteMeta] = {
     #         slowdown
     #     )})
     'guy': SpriteMeta(142, 150, {
-        'walk': (0, 6, 2)  # from frame 0, 6 frames, slowdown 2x
+        'walk': AnimFrames(
+            first=0,
+            num=6,
+            slowdown=2)
     }),
     'bloke': SpriteMeta(128, 180, {
-        'walk': (0, 6, 2),  # from frame 0, 6 frames, slowdown 2x
-        'sneeze': (6, 5, 5)  # from frame 6, 5 frames, slowdown 5x
+        'walk': AnimFrames(
+            first=0,
+            num=6,
+            slowdown=2),
+        'sneeze': AnimFrames(
+            first=6,
+            num=5,
+            slowdown=5)
     })
 }
 
@@ -49,6 +59,14 @@ class Sprite():
             self.surface,
             pygame.Rect(frame * meta.width, 0, meta.width, meta.height)
         )
+
+    def get_phase_length(self, phase: str) -> int:
+        "Return number of frames of the given animation phase"
+        meta = sprite_meta[self.key]
+        if phase not in meta.phases:
+            return 1
+        else:
+            return meta.phases[phase].num * meta.phases[phase].slowdown
 
 
 sprite_cache: Dict[str, Sprite] = {}

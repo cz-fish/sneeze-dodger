@@ -12,7 +12,7 @@
     "blokes": [
         {
             "sprite": "bloke",
-            "type": "chase",
+            "type": "patrol",
             "start": {
                 "x": 860,
                 "y": 780
