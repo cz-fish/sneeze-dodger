@@ -1,4 +1,5 @@
 import pygame
+import pygame.freetype
 
 from collections import namedtuple
 from sneeze.Actor import Actor
@@ -17,11 +18,15 @@ class App:
         self.controller = Controller()
         self.display = pygame.display.set_mode(Setup.window_size)
         pygame.display.set_caption('Sneeze Dodger')
+        pygame.freetype.init()
+        self.font = pygame.freetype.Font('font/homoarakhn.ttf', 30)
         self.clock = pygame.time.Clock()
         self.level = Level('levels/lev1.json')
+        self.game_stats = GameStats()
 
     def tick(self):
         self.clock.tick(Setup.fps)
+        self.game_stats.time += self.clock.get_time()
         inputs = self.controller.get_inputs()
         self.level.tick(inputs)
 
@@ -71,6 +76,9 @@ class App:
                         draw_rect.h + 20
                     ))
 
+        # Clear hud
+        clears.append(pygame.Rect(75, 75, 200, 75))
+
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
         
         # Clear all rects that need clearing
@@ -94,6 +102,11 @@ class App:
                     layer,
                     update.dst_rect.topleft,
                     update.dst_rect)
+
+        # Draw HUD
+        tenths = int(self.game_stats.time // 100)
+        time = f'{(tenths // 600) % 100:02}:{(tenths // 10) % 60:02}.{tenths % 10:1}'
+        self.font.render_to(self.display, (75, 75), time)
 
         # Update all rects that were cleared or redrawn
         pygame.display.update(clears + updates)
