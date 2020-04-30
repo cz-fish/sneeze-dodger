@@ -7,3 +7,6 @@ class Setup:
     # )
     fps = 30
     # speed = 4
+
+    # multiplier to convert distances in pixels to meters
+    pixels_per_meter = (80.0, 50.0)

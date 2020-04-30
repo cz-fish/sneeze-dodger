@@ -3,6 +3,8 @@ import pygame
 from collections import namedtuple
 from typing import Dict
 
+from sneeze.Types import Pos
+
 SpriteMeta = namedtuple('SpriteInfo', ['width', 'height', 'phases'])
 AnimFrames = namedtuple('AnimFrames', ['first', 'num', 'slowdown'])
 
@@ -67,6 +69,10 @@ class Sprite():
             return 1
         else:
             return meta.phases[phase].num * meta.phases[phase].slowdown
+
+    def get_size(self) -> Pos:
+        meta = sprite_meta[self.key]
+        return Pos(meta.width, meta.height)
 
 
 sprite_cache: Dict[str, Sprite] = {}

@@ -9,11 +9,3 @@ class RenderLayers:
     Actors = 1
     Overlays = 2
     Debug = 10
-
-
-class GameStats:
-    def __init__(self):
-        self.immunity = 100
-        self.time = 0.0
-        self.score = 0
-        

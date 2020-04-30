@@ -1,9 +1,11 @@
+import abc
+
 from sneeze.Sprite import Sprite
 from sneeze.Types import *
 from typing import Optional
 
 
-class Actor:
+class Actor(abc.ABC):
     def __init__(self):
         self.pos = Pos(0, 0)
         self.prev_pos = Pos(0, 0)
@@ -14,6 +16,7 @@ class Actor:
         self.sprite: Optional[Sprite] = None
         self.animation = Animation('idle', 0)
 
+    @abc.abstractmethod
     def move(self, player_pos: Pos) -> None:
         pass
     
@@ -34,3 +37,8 @@ class Actor:
             one_axis(self.speed_vec.x, xmove),
             one_axis(self.speed_vec.y, ymove)
         )
+
+    def get_size(self) -> Pos:
+        if self.sprite is None:
+            return Pos(0, 0)
+        return self.sprite.get_size()

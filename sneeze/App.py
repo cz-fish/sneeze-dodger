@@ -5,6 +5,7 @@ from collections import namedtuple
 from sneeze.Actor import Actor
 from sneeze.Color import Color
 from sneeze.Controller import Controller
+from sneeze.GameStats import GameStats
 from sneeze.Level import Level
 from sneeze.Player import Player
 from sneeze.Setup import Setup
@@ -26,14 +27,16 @@ class App:
 
     def tick(self):
         self.clock.tick(Setup.fps)
-        self.game_stats.time += self.clock.get_time()
         inputs = self.controller.get_inputs()
         self.level.tick(inputs)
+        self.game_stats.tick(self.clock.get_time(), self.level)
 
     def render(self, first_render=False):
         clears: List[pygame.Rect] = []
         redraws: List[Update] = []
         updates: List[pygame.Rect] = []
+
+        hud_right = Setup.logical_size[0] - 630
 
         if first_render:
             "Redraw the whole screen; should be done just once at the beginning"
@@ -78,6 +81,7 @@ class App:
 
         # Clear hud
         clears.append(pygame.Rect(75, 75, 200, 75))
+        clears.append(pygame.Rect(hud_right, 75, 700, 75))
 
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
         
@@ -107,6 +111,12 @@ class App:
         tenths = int(self.game_stats.time // 100)
         time = f'{(tenths // 600) % 100:02}:{(tenths // 10) % 60:02}.{tenths % 10:1}'
         self.font.render_to(self.display, (75, 75), time)
+
+        avg_dist = f'{self.game_stats.distance_avg() / 10:.1f}'
+        min_dist_int = self.game_stats.distance_min()
+        min_dist = '' if min_dist_int < 0 else f'{min_dist_int / 10:.1f}'
+        score = f'Dist: AVG {avg_dist} / MIN {min_dist}'
+        self.font.render_to(self.display, (hud_right, 75), score, fgcolor=Color.score)
 
         # Update all rects that were cleared or redrawn
         pygame.display.update(clears + updates)

@@ -47,6 +47,12 @@ class Level:
     def get_actors(self) -> List[Actor]:
         return [self.player] + self.actors
 
+    def get_player(self) -> Player:
+        return self.player
+    
+    def get_enemies(self) -> List[Bloke]:
+        return self.actors
+
     def tick(self, inputs: Inputs) -> None:
         def collision(old_pos: Pos, speed_vec: Pos) -> Pos:
             new_pos = Pos(old_pos.x + speed_vec.x, old_pos.y + speed_vec.y)
