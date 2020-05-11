@@ -9,10 +9,24 @@ from sneeze.GameStats import GameStats
 from sneeze.Level import Level
 from sneeze.Player import Player
 from sneeze.Setup import Setup
+from sneeze.Sprite import Sprite
 from sneeze.Types import *
 from typing import Dict, List
 
 Update = namedtuple('Update', ['surface', 'src_rect', 'dst_rect'])
+
+def centered_rect(center, rect):
+    return pygame.Rect(
+        int(center.x) - rect.w // 2,
+        int(center.y) - rect.h // 2,
+        rect.w,
+        rect.h)
+
+def make_update_rect(draw_rect):
+    # FIXME: why do we have to add some pixels around?
+    #        if we don't, the moving side is flickering
+    return draw_rect.inflate(15, 15)
+
 
 class App:
     def __init__(self):
@@ -24,13 +38,35 @@ class App:
         self.clock = pygame.time.Clock()
         self.level = Level('levels/lev1.json')
         self.game_stats = GameStats()
+        # Sprite of the shadow under the player
+        self.shadow = Sprite.load('shadow')
+        # Animation frame for anything that's moving, other than the actors
+        self.anim_frame = 0
+        # rect of the distance line from the previous frame for clearing
+        self.last_line_rect = None
 
     def tick(self):
         self.clock.tick(Setup.fps)
         inputs = self.controller.get_inputs()
         self.level.tick(inputs)
         self.game_stats.tick(self.clock.get_time(), self.level)
+        self.anim_frame += 1
 
+    def _render_shadow(self, clears, redraws, updates):
+        blit = self.shadow.get_blit('pulse', self.anim_frame)
+
+        if self.game_stats.prev_vector is not None:
+            # Clear previous shadow
+            prev_vec = self.game_stats.prev_vector
+            clears.append(centered_rect(prev_vec[0], blit.rect))
+
+        if self.game_stats.vector is not None:
+            # Draw new shadow
+            vec = self.game_stats.vector
+            draw_rect = centered_rect(vec[0], blit.rect)
+            redraws.append(Update(blit.surface, blit.rect, draw_rect))
+            updates.append(make_update_rect(draw_rect))
+    
     def render(self, first_render=False):
         clears: List[pygame.Rect] = []
         redraws: List[Update] = []
@@ -47,6 +83,8 @@ class App:
                 pygame.Rect(0, 0, Setup.logical_size[0], Setup.logical_size[1])
             )
         else:
+            self._render_shadow(clears, redraws, updates)
+
             actors = self.level.get_actors()
             # actors ordered by y-coord
             for actor in sorted(actors, key=lambda a: a.pos.y):
@@ -55,33 +93,20 @@ class App:
                 sprite = actor.sprite
                 anim, phase = actor.animation
                 blit = sprite.get_blit(anim, phase)
-                half_width = blit.rect.w // 2
-                half_height = blit.rect.h // 2
 
-                def make_rect(pos):
-                    return pygame.Rect(
-                        int(pos.x) - half_width,
-                        int(pos.y) - half_height,
-                        blit.rect.w,
-                        blit.rect.h)
-
-                clear_rect = make_rect(actor.prev_pos)
-                draw_rect = make_rect(actor.pos)
-
+                clear_rect = centered_rect(actor.prev_pos, blit.rect)
+                draw_rect = centered_rect(actor.pos, blit.rect)
                 clears.append(clear_rect)
                 redraws.append(Update(blit.surface, blit.rect, draw_rect))
-                # FIXME: why do we have to add 10 pixels around?
-                updates.append(
-                    pygame.Rect(
-                        draw_rect.x - 10,
-                        draw_rect.y - 10,
-                        draw_rect.w + 20,
-                        draw_rect.h + 20
-                    ))
+                updates.append(make_update_rect(draw_rect))
 
         # Clear hud
         clears.append(pygame.Rect(75, 75, 200, 75))
         clears.append(pygame.Rect(hud_right, 75, 700, 75))
+
+        # Clear distance line
+        if self.last_line_rect is not None:
+            clears += [make_update_rect(self.last_line_rect)]
 
         # FIXME: somewhere here, we'll have to transform if window_size != logical_size
         
@@ -89,6 +114,18 @@ class App:
         for i, layer in self.static_layers:
             for clear in clears:
                 self.display.blit(layer, clear.topleft, clear)
+
+        # Draw new distance line
+        if self.game_stats.vector is not None:
+            vec = self.game_stats.vector
+            self.last_line_rect = pygame.draw.line(
+                self.display,
+                Color.shadow,
+                vec[0],
+                vec[1],
+                5
+            )
+            updates += [self.last_line_rect]
 
         # Redraw actors that need redrawing
         for update in redraws:

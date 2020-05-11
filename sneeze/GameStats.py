@@ -24,21 +24,21 @@ class GameStats:
             return
 
         player_size = player.get_size()
-        px = player.pos.x + player_size.x // 2
-        py = player.pos.y + player_size.y
+        px = player.pos.x
+        py = player.pos.y + player_size.y // 2
 
         closest = None
         distance = None
 
         for e in enemies:
             enemy_size = e.get_size()
-            ex = e.pos.x + enemy_size.x // 2
-            ey = e.pos.y + enemy_size.y
+            ex = e.pos.x
+            ey = e.pos.y + enemy_size.y // 2
             dx = (ex - px) / Setup.pixels_per_meter[0]
             dy = (ey - py) / Setup.pixels_per_meter[1]
             dist = math.sqrt(dx * dx + dy * dy)
             if closest is None or dist < distance:
-                closest = Pos(dx, dy)
+                closest = Pos(ex, ey)
                 distance = dist
 
         self.prev_vector = self.vector

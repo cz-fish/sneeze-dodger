@@ -33,6 +33,12 @@ sprite_meta: Dict[str, SpriteMeta] = {
             first=6,
             num=5,
             slowdown=5)
+    }),
+    'shadow': SpriteMeta(320, 200, {
+        'pulse': AnimFrames(
+            first=0,
+            num=8,
+            slowdown=2)
     })
 }
 
