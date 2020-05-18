@@ -1,5 +1,4 @@
 import pygame
-
 from sneeze.App import App
 
 pygame.init()
